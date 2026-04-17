@@ -5,9 +5,9 @@ from PIL import Image
 from huggingface_hub import hf_hub_download
 import streamlit as st
 
-trained_model = None
 
-class_names = ['Front Breakage', 'Front Crushed', 'Front Normal', 'Rear Breakage', 'Rear Crushed', 'Rear Normal']
+class_names = ['Front Breakage', 'Front Crushed', 'Front Normal',
+               'Rear Breakage', 'Rear Crushed', 'Rear Normal']
 
 
 class CarClassifierResNet(nn.Module):
@@ -31,8 +31,11 @@ class CarClassifierResNet(nn.Module):
 
 
 def load_model_from_hf():
-    token = st.secrets["HF_TOKEN"]
-    
+    token = st.secrets.get("HF_TOKEN")
+
+    if not token:
+        raise ValueError("HF_TOKEN not found in Streamlit secrets")
+
     model_path = hf_hub_download(
         repo_id="vyadavalli3471/car-damage-prediction-cnn",
         filename="saved_model.pth",
@@ -47,11 +50,16 @@ def load_model_from_hf():
     return model
 
 
-def predict(image_path):
-    image = Image.open(image_path).convert("RGB")
+@st.cache_resource
+def get_model():
+    return load_model_from_hf()
+
+
+def predict(image):
+    image = image.convert("RGB")
 
     transform = transforms.Compose([
-        transforms.Resize((224,224)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
@@ -59,13 +67,10 @@ def predict(image_path):
 
     image_tensor = transform(image).unsqueeze(0)
 
-    global trained_model
-
-    if trained_model is None:
-        trained_model = load_model_from_hf()
+    model = get_model()
 
     with torch.no_grad():
-        output = trained_model(image_tensor)
+        output = model(image_tensor)
         _, predicted_class = torch.max(output, 1)
 
     return class_names[predicted_class.item()]
