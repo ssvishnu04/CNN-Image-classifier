@@ -26,3 +26,5 @@ The model is trained on third quarter front and rare view hence the picture shou
 2. Run the streamlit app:
    ```commandline
    streamlit run app.py
+
+3. The model is saved in Hugging Face as Git has storage limitation and the file size is more than the expected storage. A secret key is used to retrieve the model from Hugging face cloud
