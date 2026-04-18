@@ -4,6 +4,7 @@ from torchvision import models, transforms
 from PIL import Image
 from huggingface_hub import hf_hub_download
 import streamlit as st
+import torch.nn.functional as F
 
 
 class_names = ['Front Breakage', 'Front Crushed', 'Front Normal',
@@ -71,6 +72,12 @@ def predict(image):
 
     with torch.no_grad():
         output = model(image_tensor)
-        _, predicted_class = torch.max(output, 1)
+        probs = F.softmax(output, dim=1)
+        confidence, predicted_class = torch.max(probs, 1)
 
-    return class_names[predicted_class.item()]
+    confidence = confidence.item()
+
+    if confidence < 0.5:
+        return "Not a valid car image", confidence
+
+    return class_names[predicted_class.item()], confidence
