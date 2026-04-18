@@ -6,11 +6,12 @@ from huggingface_hub import hf_hub_download
 import streamlit as st
 import torch.nn.functional as F
 
-
+# Class labels
 class_names = ['Front Breakage', 'Front Crushed', 'Front Normal',
                'Rear Breakage', 'Rear Crushed', 'Rear Normal']
 
 
+# Model architecture
 class CarClassifierResNet(nn.Module):
     def __init__(self, num_classes=6):
         super().__init__()
@@ -31,6 +32,7 @@ class CarClassifierResNet(nn.Module):
         return self.model(x)
 
 
+# Load model securely from Hugging Face
 def load_model_from_hf():
     token = st.secrets.get("HF_TOKEN")
 
@@ -51,21 +53,24 @@ def load_model_from_hf():
     return model
 
 
+# Cache model (important for performance)
 @st.cache_resource
 def get_model():
     return load_model_from_hf()
 
 
+# Image transform (defined once)
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
+])
+
+
+# Prediction function
 def predict(image):
     image = image.convert("RGB")
-
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
-    ])
-
     image_tensor = transform(image).unsqueeze(0)
 
     model = get_model()
@@ -76,8 +81,6 @@ def predict(image):
         confidence, predicted_class = torch.max(probs, 1)
 
     confidence = confidence.item()
+    prediction = class_names[predicted_class.item()]
 
-    if confidence < 0.5:
-        return "Not a valid car image", confidence
-
-    return class_names[predicted_class.item()], confidence
+    return prediction, confidence
