@@ -14,19 +14,17 @@ uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
     try:
-        # Load image
         image = Image.open(uploaded_file).convert("RGB")
 
-        # Show image
         st.image(image, caption="Uploaded Image", use_container_width=True)
 
-        # Run prediction
         with st.spinner("Analyzing image..."):
             prediction, confidence = predict(image)
 
-        # Handle non-car / low confidence
-        if prediction == "Not a valid car image":
-            st.warning("⚠️ Please upload a valid car image")
+        # Correct logic
+        if confidence < 0.6:
+            st.warning("Not a valid car image. Please upload a clear vehicle image.")
+            st.write(f"Confidence: {confidence:.2%}")
         else:
             st.success(f"Prediction: {prediction}")
             st.write(f"Confidence: {confidence:.2%}")
